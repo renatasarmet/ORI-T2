@@ -34,7 +34,7 @@ int insert(int key);
 //void display(struct node *root,int);
 //void DelNode(int x);
 //void search(int x);
-enum KeyStatus ins(long int *r, int x, int* y, struct node** u, long int *newNodePos);
+enum KeyStatus ins(long int *r, int x, int* y, struct node** u, long int **newNodePos);
 int searchPos(int x,int *key_arr, int n);
 // enum KeyStatus del(struct node *r, int x);
 void eatline(void);
@@ -144,7 +144,8 @@ int insert(int key)
         int upKey;
         enum KeyStatus value;
         printf("\n\nVou chamar o ins\n\n");
-        value = ins(cabecalho->root, key, &upKey, &newnode, newNodePos);
+        value = ins(cabecalho->root, key, &upKey, &newnode, &newNodePos);
+        printf("\n\n----TEMOS novo POS DE NEW NODE = %ld\n\n", newNodePos);
         printf("\n\nESTAVA NO ins\n\n");
         if (value == Duplicate)
             printf("\nKey already available\n");
@@ -178,8 +179,9 @@ int insert(int key)
 
 }/*End of insert()*/
 
-enum KeyStatus ins(long int *ptr, int key, int *upKey,struct node **newnode, long int *newNodePos)
+enum KeyStatus ins(long int *ptr, int key, int *upKey,struct node **newnode, long int **newNodePos)
 {
+    printf("\n\n---------------ESTOU COMECANDO O ins com ptr = %ld\n\n", ptr);
     // ler o que está na raiz
     FILE *arquivo;
     struct Bloco* blocoPtr = criarBloco();
@@ -294,7 +296,9 @@ enum KeyStatus ins(long int *ptr, int key, int *upKey,struct node **newnode, lon
     fwrite(blocoPtr, TAM_BLOCO, 1, arquivo);
 
     fseek(arquivo, 0, SEEK_END);
-    newNodePos = ftell(arquivo);
+    *newNodePos = ftell(arquivo);
+
+    printf("\n\n----TEMOS POS DE NEW NODE = %ld\n\n", *newNodePos);
 
     blocoNewNode->no = **newnode;
     fwrite(blocoNewNode, TAM_BLOCO, 1, arquivo);
