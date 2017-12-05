@@ -30,7 +30,7 @@ struct Cabecalho{
 enum KeyStatus { Duplicate,SearchFailure,Success,InsertIt,LessKeys, FailedOpenFile };
 
 int insert(int key);
-//void display(struct node *root,int);
+void display(long int root,int);
 //void DelNode(int x);
 void search(int x);
 enum KeyStatus ins(long int r, int x, int* y, struct node** u, long int *newNodePos);
@@ -55,16 +55,32 @@ int main()
 {
     FILE *arquivo;
     struct Bloco bloco;
+    struct Cabecalho *cabecalho = criarCabecalho();
     int key;
     int choice;
     printf("Creation of B tree for M=%d\n",M);
     while(1)
     {
+        // Abre arquivo em modo leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+        // Se arquivo foi aberto com sucesso
+        if(arquivo){
+            // Le cabecalho
+            fseek(arquivo, 0, SEEK_SET);
+            fread(cabecalho, TAM_CABECALHO, 1, arquivo);
+            //Fecha arquivo
+            
+        }
+
+        // Fecha arquivo
+        fclose(arquivo);
+
         printf("\n\n0.New File\n");
         printf("1.Insert\n");
         // printf("2.Delete\n");
         printf("3.Search\n");
-        // printf("4.Display\n");
+        printf("4.Display\n");
         // printf("5.Quit\n");
         // printf("6.Enumerate\n");
         // printf("7.Total Keys\n");
@@ -93,10 +109,10 @@ int main()
             scanf("%d",&key); eatline();
             search(key);
             break;
-        // case 4:
-        //     printf("Btree is :\n");
-        //     display(root,0);
-        //     break;
+        case 4:
+            printf("Btree is :\n");
+            display(cabecalho->root,0);
+            break;
         // case 5:
         //     exit(1);
         // case 6:
@@ -330,20 +346,35 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
     return InsertIt;
 }/*End of ins()*/
 
-// void display(struct node *ptr, int blanks)
-// {
-//     if (ptr)
-//     {
-//         int i;
-//         for(i=1; i<=blanks; i++)
-//             printf(" ");
-//         for (i=0; i < ptr->n; i++)
-//             printf("%d ",ptr->keys[i]);
-//         printf("\n");
-//         for (i=0; i <= ptr->n; i++)
-//             display(ptr->p[i], blanks+10);
-//     }/*End of if*/
-// }/*End of display()*/
+void display(long int ptr, int blanks)
+{
+    // Cria FILE arquivo
+    FILE *arquivo;
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
+    if (ptr != -1)
+    {
+        int i;
+        for(i=1; i<=blanks; i++)
+            printf(" ");
+
+        // Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+       // Le o bloco do nó apontado por ptr
+        fseek(arquivo, ptr, SEEK_SET);
+        fread(bloco, TAM_BLOCO,1,arquivo);
+
+        // Substituir todo lugar que era ptr-> por bloco->no.
+        
+        for (i=0; i < bloco->no.n; i++)
+            printf("%d ",bloco->no.keys[i]);
+        printf("\n");
+
+        for (i=0; i <= bloco->no.n; i++)
+            display(bloco->no.p[i], blanks+10);
+    }/*End of if*/
+}/*End of display()*/
 
 void search(int key)
 {
