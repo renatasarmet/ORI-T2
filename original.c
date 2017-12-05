@@ -32,7 +32,7 @@ enum KeyStatus { Duplicate,SearchFailure,Success,InsertIt,LessKeys, FailedOpenFi
 int insert(int key);
 //void display(struct node *root,int);
 //void DelNode(int x);
-//void search(int x);
+void search(int x);
 enum KeyStatus ins(long int r, int x, int* y, struct node** u, long int *newNodePos);
 int searchPos(int x,int *key_arr, int n);
 // enum KeyStatus del(struct node *r, int x);
@@ -63,7 +63,7 @@ int main()
         printf("\n\n0.New File\n");
         printf("1.Insert\n");
         // printf("2.Delete\n");
-        // printf("3.Search\n");
+        printf("3.Search\n");
         // printf("4.Display\n");
         // printf("5.Quit\n");
         // printf("6.Enumerate\n");
@@ -88,11 +88,11 @@ int main()
         //     scanf("%d",&key); eatline();
         //     DelNode(key);
         //     break;
-        // case 3:
-        //     printf("Enter the key : ");
-        //     scanf("%d",&key); eatline();
-        //     search(key);
-        //     break;
+        case 3:
+            printf("Enter the key : ");
+            scanf("%d",&key); eatline();
+            search(key);
+            break;
         // case 4:
         //     printf("Btree is :\n");
         //     display(root,0);
@@ -310,27 +310,42 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
 //     }/*End of if*/
 // }/*End of display()*/
 
-// void search(int key)
-// {
-//     int pos, i, n;
-//     struct node *ptr = root;
-//     printf("Search path:\n");
-//     while (ptr)
-//     {
-//         n = ptr->n;
-//         for (i=0; i < ptr->n; i++)
-//             printf(" %d",ptr->keys[i]);
-//         printf("\n");
-//         pos = searchPos(key, ptr->keys, n);
-//         if (pos < n && key == ptr->keys[pos])
-//         {
-//             printf("Key %d found in position %d of last dispalyed node\n",key,i);
-//             return;
-//         }
-//         ptr = ptr->p[pos]; // ptr recebe ponteiro do filho do caminho para encontrar a chave
-//     }
-//     printf("Key %d is not available\n",key);
-// }/*End of search()*/
+void search(int key)
+{
+    FILE *arquivo;
+    int pos, i, n;
+
+    long int ptr;
+    struct Bloco *bloco = criarBloco();
+    struct Cabecalho* cabecalho = criarCabecalho();
+
+    arquivo = fopen("arquivo.txt", "rb");
+
+
+    fseek(arquivo, 0, SEEK_SET);
+    fread(cabecalho, TAM_CABECALHO, 1, arquivo);
+
+    ptr = cabecalho->root;
+
+    printf("Search path:\n");
+    while (ptr != -1)
+    {
+        fseek(arquivo, ptr, SEEK_SET);
+        fread(bloco, TAM_BLOCO,1,arquivo);
+        n = bloco->no.n;
+        for (i=0; i < bloco->no.n; i++)
+            printf(" %d",bloco->no.keys[i]);
+        printf("\n");
+        pos = searchPos(key, bloco->no.keys, n);
+        if (pos < n && key == bloco->no.keys[pos])
+        {
+            printf("Key %d found in position %d of last dispalyed node\n",key,pos+1);
+            return;
+        }
+        ptr = bloco->no.p[pos]; // ptr recebe ponteiro do filho do caminho para encontrar a chave
+    }
+    printf("Key %d is not available\n",key);
+}/*End of search()*/
 
 // Encontra posicao onde o chave deveria estar
 int searchPos(int key, int *key_arr, int n)
