@@ -124,19 +124,27 @@ int main()
 
 int insert(int key)
 {
+    // Cria FILE arquivo
     FILE *arquivo;
+    // Cria Bloco bloco
     struct Bloco* bloco = criarBloco();
+    // Cria Cabecalho cabecalho
     struct Cabecalho* cabecalho = criarCabecalho();
+
+    // Abre arquivo em modo de leitura e escrita
     arquivo = fopen("arquivo.txt", "rb+");
 
+    // Verifica se arquivo foi aperto com sucesso
     if(!arquivo){
         printf("\nFailed to open file\n");
         return 0;
     }
     else{
-
+        // Posiciona seek no inicio do arquivo
         fseek(arquivo, 0, SEEK_SET);
+        // Le o cabecalho
         fread(cabecalho, TAM_CABECALHO, 1, arquivo);
+        // Fecha o arquivo
         fclose(arquivo);
         long int newNodePos;
         struct node *newnode;  // Cria novo nó
@@ -147,23 +155,32 @@ int insert(int key)
             printf("\nKey already available\n");
         if (value == InsertIt)
         {
+            // Abre arquivo em modo de leitura e escrita
             arquivo = fopen("arquivo.txt", "rb+");
 
             long int uproot = cabecalho->root;
 
+             // Posiciona seek no final do arquivo
             fseek(arquivo, 0, SEEK_END);
+
+            // A raiz agora salva em cabecalho vai apontar para o final do arquivo
             cabecalho->root = ftell(arquivo);
+            
+            // Coloca informações do novo bloco
             bloco->no.n = 1;
             bloco->no.keys[0] = upKey;
             bloco->no.p[0] = uproot;
             bloco->no.p[1] = newNodePos;
 
+            // Insere novo bloco no fim do arquivo
             fwrite(bloco, TAM_BLOCO, 1, arquivo);
 
+            // Posiciona seek no começo do arquivo
             fseek(arquivo, 0, SEEK_SET);
+            // Reescreve cabecalho atualizado
             fwrite(cabecalho, TAM_CABECALHO, 1, arquivo);
 
-
+            // Fecha arquivo
             fclose(arquivo);
         }/*End of if */
 
@@ -184,16 +201,17 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
     enum KeyStatus value;
 
 
+    // Abre arquivo em modo leitura e escrita
     arquivo = fopen("arquivo.txt", "rb+");
 
+    // Verifica se arquivo foi aberto corretamente
     if(!arquivo){
         printf("\nFailed to open file no ins\n");
         return FailedOpenFile;
     }
     
 
-
-    if (ptr == -1)  // Se encontrou onde inserir para criar um novo nó
+    if (ptr == -1)  // Verifica se encontrou onde inserir para criar um novo nó (ptr sendo -1 indica nulo)
     {
         *newnode = NULL;
         *newNodePos = -1;
@@ -201,12 +219,20 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
         return InsertIt;
     }
 
+    // Posiciona o seek onde está apontando que é o nó raiz
     fseek(arquivo, ptr, SEEK_SET);
+
+    // Le o bloco contendo nó raiz
     fread(blocoPtr, TAM_BLOCO, 1, arquivo);
     fclose(arquivo);
 
 
-    n = blocoPtr->no.n;
+    // Observações de acontecimentos no código em geral:
+    // Todo lugar que antigamente era a struct node *ptr, agora é blocoBtr->no
+    // E todo lugar que era ponteiro para struct de filho, agora é long int
+
+
+    n = blocoPtr->no.n; // salva em n a quantidade de chaves no nó raiz
     pos = searchPos(key, blocoPtr->no.keys, n);  // Passa a key que quer inserir, todas as chaves presentes no nó e a qtd de chaves no nó
     if (pos < n && key == blocoPtr->no.keys[pos]) // Se a chave a ser inserida ja está presente no nó
         return Duplicate;
@@ -264,9 +290,9 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
     (*newnode)->n = M-1-splitPos;/*No. of keys for right splitted node*/ // Se for ordem Par, direita é maior
     for (i=0; i < (*newnode)->n; i++)
     {
-        (*newnode)->p[i] = blocoPtr->no.p[i + splitPos + 1]; // Transfere os filhos do ptr para o novo nó
+        (*newnode)->p[i] = blocoPtr->no.p[i + splitPos + 1]; // Transfere os filhos do blocoPtr para o novo nó
         if(i < (*newnode)->n - 1)
-            (*newnode)->keys[i] = blocoPtr->no.keys[i + splitPos + 1]; // Transfere as chaves do ptr para o novo nó
+            (*newnode)->keys[i] = blocoPtr->no.keys[i + splitPos + 1]; // Transfere as chaves do blocoPtr para o novo nó
         else
             (*newnode)->keys[i] = lastKey;
         blocoPtr->no.keys[i + splitPos + 1] = 0;
@@ -275,21 +301,30 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
     blocoPtr->no.keys[splitPos] = 0;
     (*newnode)->p[(*newnode)->n] = lastPtrPos;
 
-
+    // Cria novo Bloco blocoNewNode
     struct Bloco* blocoNewNode = criarBloco();
-   
 
+    // Abre arquivo para leitura e escrita
     arquivo = fopen("arquivo.txt", "rb+");
 
+    // Posiciona o seek onde está o blocoPtr
     fseek(arquivo, ptr, SEEK_SET);
+    // Reescreve no arquivo o blocoPtr
     fwrite(blocoPtr, TAM_BLOCO, 1, arquivo);
 
+    // Posiciona seek no final do arquivo
     fseek(arquivo, 0, SEEK_END);
+
+    // Salva o valor da posição final em newNodePos, pois será usado para inserir novo nó posteriormente
     *newNodePos = ftell(arquivo);
 
+    // O nó do novo bloco criado rececebe o novo nó criado anteriormente
     blocoNewNode->no = **newnode;
+
+    // Escreve esse novo bloco no final do arquivo
     fwrite(blocoNewNode, TAM_BLOCO, 1, arquivo);
 
+    // Fecha arquivo
     fclose(arquivo);
 
     return InsertIt;
@@ -321,28 +356,38 @@ void search(int key)
 
     arquivo = fopen("arquivo.txt", "rb");
 
-
+    // Le cabecalho
     fseek(arquivo, 0, SEEK_SET);
     fread(cabecalho, TAM_CABECALHO, 1, arquivo);
 
+    // ptr aponta para posicao no arquivo da raiz marcada pelo calendario
     ptr = cabecalho->root;
 
     printf("Search path:\n");
     while (ptr != -1)
     {
+        // Le o bloco do nó apontado por ptr
         fseek(arquivo, ptr, SEEK_SET);
         fread(bloco, TAM_BLOCO,1,arquivo);
         n = bloco->no.n;
+
+        // Exibe todas as chaves do nó
         for (i=0; i < bloco->no.n; i++)
             printf(" %d",bloco->no.keys[i]);
         printf("\n");
+
+        // Verifica qual posicao deveria estar a chave
         pos = searchPos(key, bloco->no.keys, n);
+
+        //Verifica se a chave está no nó atual
         if (pos < n && key == bloco->no.keys[pos])
         {
             printf("Key %d found in position %d of last dispalyed node\n",key,pos+1);
             return;
         }
-        ptr = bloco->no.p[pos]; // ptr recebe ponteiro do filho do caminho para encontrar a chave
+
+        // Se a chave não estiver no nó, ptr recebe o filho que poderia conter a chave e retorna no loop, lendo esse filho
+        ptr = bloco->no.p[pos]; // ptr recebe posicao no arquivo do filho do caminho para encontrar a chave
     }
     printf("Key %d is not available\n",key);
 }/*End of search()*/
