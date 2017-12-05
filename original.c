@@ -159,7 +159,6 @@ int insert(int key)
 
             
             printf("\nQUERO INSERIR\n");
-            // cabecalho->root=malloc(sizeof(struct node));
             bloco->no.n = 1;
             bloco->no.keys[0] = upKey;
             bloco->no.p[0] = uproot;
@@ -280,19 +279,26 @@ enum KeyStatus ins(long int *ptr, int key, int *upKey,struct node **newnode, lon
             (*newnode)->keys[i] = blocoPtr->no.keys[i + splitPos + 1]; // Transfere as chaves do ptr para o novo nó
         else
             (*newnode)->keys[i] = lastKey;
+        blocoPtr->no.keys[i + splitPos + 1] = 0;
     }
+    blocoPtr->no.keys[splitPos] = 0;
     (*newnode)->p[(*newnode)->n] = lastPtrPos;
 
 
     struct Bloco* blocoNewNode = criarBloco();
-    blocoNewNode->no = **newnode;
+   
 
     arquivo = fopen("arquivo.txt", "rb+");
+
+    fseek(arquivo, ptr, SEEK_SET);
+    fwrite(blocoPtr, TAM_BLOCO, 1, arquivo);
 
     fseek(arquivo, 0, SEEK_END);
     newNodePos = ftell(arquivo);
 
+    blocoNewNode->no = **newnode;
     fwrite(blocoNewNode, TAM_BLOCO, 1, arquivo);
+
     fclose(arquivo);
 
     return InsertIt;
