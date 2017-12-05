@@ -7,13 +7,13 @@ https://sites.google.com/site/itstudentjunction/lab-programming-solutions/data-s
 #include <string.h>
 #define M 5   // Ordem da arvore
 #define TAM_BLOCO 64 // blocos serão de tamanho 64 bytes
-#define TAM_CABECALHO 8 // cabecalho tera tamanho 8 bytes
+#define TAM_CABECALHO 8 // cabecalho terá tamanho 8 bytes
 
 // Possui 64 bytes
 struct node {
     int n; /* n < M No. of keys in node will always less than order of B tree */ // Quantidade de chave no nó
     int keys[M-1]; /*array of keys*/ //chaves
-    long int p[M]; /* (n+1 pointers will be in use) */ // Ponteiro para os filhos do nó
+    long int p[M]; // apontarão para a posiçao dos filhos do nó no arquivo 
 };
 
 //Estrutura para o bloco contendo apenas um nó (64 bytes)
@@ -21,10 +21,9 @@ struct Bloco{
 	  struct node no;
 };
 
-//Estrutura para o cabecalho contendo o ponteiro para root de tamanho 8
+//Estrutura para o cabecalho contendo o long int que aponta para posicao da root no arquivo (tamanho 8)
 struct Cabecalho{
     long int root;
-    //struct node *root;
 };
 
 
@@ -54,8 +53,6 @@ struct Cabecalho* criarCabecalho();
 
 int main()
 {
-    long int a;
-    printf("\nSabemos q o tamanho agora eh: %ld\n\n", sizeof(a));
     FILE *arquivo;
     struct Bloco bloco;
     int key;
@@ -63,7 +60,7 @@ int main()
     printf("Creation of B tree for M=%d\n",M);
     while(1)
     {
-        printf("0.New File\n");
+        printf("\n\n0.New File\n");
         printf("1.Insert\n");
         // printf("2.Delete\n");
         // printf("3.Search\n");
@@ -145,12 +142,7 @@ int insert(int key)
         struct node *newnode;  // Cria novo nó
         int upKey;
         enum KeyStatus value;
-        printf("\n\nVou chamar o ins\n\n");
-
-        printf("\n OLHA SO AQUI O CABECALHO = %ld\n", cabecalho->root);
         value = ins(cabecalho->root, key, &upKey, &newnode, &newNodePos);
-        printf("\n\n----TEMOS novo POS DE NEW NODE = %ld\n\n", newNodePos);
-        printf("\n\nESTAVA NO ins\n\n");
         if (value == Duplicate)
             printf("\nKey already available\n");
         if (value == InsertIt)
@@ -161,9 +153,6 @@ int insert(int key)
 
             fseek(arquivo, 0, SEEK_END);
             cabecalho->root = ftell(arquivo);
-
-            
-            printf("\nQUERO INSERIR\n");
             bloco->no.n = 1;
             bloco->no.keys[0] = upKey;
             bloco->no.p[0] = uproot;
@@ -185,7 +174,6 @@ int insert(int key)
 
 enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long int *newNodePos)
 {
-    printf("\n\n---------------ESTOU COMECANDO O ins com ptr = %ld\n\n", ptr);
     // ler o que está na raiz
     FILE *arquivo;
     struct Bloco* blocoPtr = criarBloco();
@@ -207,16 +195,12 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
 
     if (ptr == -1)  // Se encontrou onde inserir para criar um novo nó
     {
-        printf("TEMOS PONTEIRO NULO");
         *newnode = NULL;
         *newNodePos = -1;
         *upKey = key;
         return InsertIt;
     }
 
-
-
-    printf("\n\nTemos ptr = %ld\n\n", ptr);
     fseek(arquivo, ptr, SEEK_SET);
     fread(blocoPtr, TAM_BLOCO, 1, arquivo);
     fclose(arquivo);
@@ -302,8 +286,6 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
 
     fseek(arquivo, 0, SEEK_END);
     *newNodePos = ftell(arquivo);
-
-    printf("\n\n----TEMOS POS DE NEW NODE = %ld\n\n", *newNodePos);
 
     blocoNewNode->no = **newnode;
     fwrite(blocoNewNode, TAM_BLOCO, 1, arquivo);
