@@ -197,6 +197,8 @@ int insert(int key)
             fwrite(cabecalho, TAM_CABECALHO, 1, arquivo);
 
             // Fecha arquivo
+            free(bloco);
+            free(cabecalho);
             fclose(arquivo);
         }/*End of if */
 
@@ -275,6 +277,7 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
         fseek(arquivo, ptr, SEEK_SET);
         fwrite(blocoPtr, TAM_BLOCO, 1, arquivo);
         fclose(arquivo);
+        
         return Success;
     }/*End of if */
     /*If keys in nodes are maximum and position of node to be inserted is last*/
