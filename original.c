@@ -37,15 +37,15 @@ enum KeyStatus ins(long int r, int x, int* y, struct node** u, long int *newNode
 int searchPos(int x,int *key_arr, int n);
 // enum KeyStatus del(struct node *r, int x);
 void eatline(void);
-// void inorder(struct node *ptr);
-// int totalKeys(struct node *ptr);
-// void printTotal(struct node *ptr);
-// int getMin(struct node *ptr);
-// int getMax(struct node *ptr);
-// void getMinMax(struct node *ptr);
-// int max(int first, int second, int third);
-// int maxLevel(struct node *ptr);
-//void printMaxLevel(struct node *ptr);
+void inorder(long int ptr);
+int totalKeys(long int ptr);
+void printTotal(long int ptr);
+int getMin(long int ptr);
+int getMax(long int ptr);
+void getMinMax(long int ptr);
+int max(int first, int second, int third);
+int maxLevel(long int ptr);
+void printMaxLevel(long int ptr);
 void criarArquivo(FILE* arquivo);
 struct Bloco* criarBloco();
 struct Cabecalho* criarCabecalho();
@@ -81,11 +81,11 @@ int main()
         // printf("2.Delete\n");
         printf("3.Search\n");
         printf("4.Display\n");
-        // printf("5.Quit\n");
-        // printf("6.Enumerate\n");
-        // printf("7.Total Keys\n");
-        // printf("8.Min and Max Keys\n");
-        // printf("9.Max Level\n");
+        printf("5.Quit\n");
+        printf("6.Enumerate\n");
+        printf("7.Total Keys\n");
+        printf("8.Min and Max Keys\n");
+        printf("9.Max Level\n");
         printf("Enter your choice : ");
         scanf("%d",&choice); eatline();
 
@@ -113,23 +113,23 @@ int main()
             printf("Btree is :\n");
             display(cabecalho->root,0);
             break;
-        // case 5:
-        //     exit(1);
-        // case 6:
-        //     printf("Btree in sorted order is:\n");
-        //     inorder(root); putchar('\n');
-        //     break;
-        // case 7:
-        // 	printf("The total number of keys in this tree is:\n");
-        //     printTotal(root);
-        //     break;
-        // case 8:
-        //     getMinMax(root);
-        //     break;
-        // case 9:
-        // 	printf("The maximum level in this tree is:\n");
-        // 	printMaxLevel(root);
-        // 	break;
+        case 5:
+            exit(1);
+        case 6:
+            printf("Btree in sorted order is:\n");
+            inorder(cabecalho->root); putchar('\n');
+            break;
+        case 7:
+        	printf("The total number of keys in this tree is:\n");
+            printTotal(cabecalho->root);
+            break;
+        case 8:
+            getMinMax(cabecalho->root);
+            break;
+        case 9:
+        	printf("The maximum level in this tree is:\n");
+        	printMaxLevel(cabecalho->root);
+        	break;
         default:
             printf("Wrong choice\n");
             break;
@@ -153,6 +153,8 @@ int insert(int key)
     // Verifica se arquivo foi aperto com sucesso
     if(!arquivo){
         printf("\nFailed to open file\n");
+        free(bloco);
+        free(cabecalho);
         return 0;
     }
     else{
@@ -277,7 +279,6 @@ enum KeyStatus ins(long int ptr, int key, int *upKey,struct node **newnode, long
         fseek(arquivo, ptr, SEEK_SET);
         fwrite(blocoPtr, TAM_BLOCO, 1, arquivo);
         fclose(arquivo);
-        
         return Success;
     }/*End of if */
     /*If keys in nodes are maximum and position of node to be inserted is last*/
@@ -364,18 +365,27 @@ void display(long int ptr, int blanks)
         // Abre o arquivo para leitura
         arquivo = fopen("arquivo.txt", "rb");
 
-       // Le o bloco do nó apontado por ptr
-        fseek(arquivo, ptr, SEEK_SET);
-        fread(bloco, TAM_BLOCO,1,arquivo);
+        // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
 
-        // Substituir todo lugar que era ptr-> por bloco->no.
-        
-        for (i=0; i < bloco->no.n; i++)
-            printf("%d ",bloco->no.keys[i]);
-        printf("\n");
+	    else{
+	    	// Le o bloco do nó apontado por ptr
+	        fseek(arquivo, ptr, SEEK_SET);
+	        fread(bloco, TAM_BLOCO,1,arquivo);
 
-        for (i=0; i <= bloco->no.n; i++)
-            display(bloco->no.p[i], blanks+10);
+	        // Substituir todo lugar que era ptr-> por bloco->no.
+	        
+	        for (i=0; i < bloco->no.n; i++)
+	            printf("%d ",bloco->no.keys[i]);
+	        printf("\n");
+
+	        for (i=0; i <= bloco->no.n; i++)
+	            display(bloco->no.p[i], blanks+10);
+	    }
+     
     }/*End of if*/
 }/*End of display()*/
 
@@ -389,6 +399,14 @@ void search(int key)
     struct Cabecalho* cabecalho = criarCabecalho();
 
     arquivo = fopen("arquivo.txt", "rb");
+
+    // Verifica se arquivo foi aperto com sucesso
+    if(!arquivo){
+        printf("\nFailed to open file\n");
+        free(bloco);
+        free(cabecalho);
+        return;
+    }
 
     // Le cabecalho
     fseek(arquivo, 0, SEEK_SET);
@@ -417,6 +435,8 @@ void search(int key)
         if (pos < n && key == bloco->no.keys[pos])
         {
             printf("Key %d found in position %d of last dispalyed node\n",key,pos+1);
+            free(bloco);
+            free(cabecalho);
             return;
         }
 
@@ -424,6 +444,8 @@ void search(int key)
         ptr = bloco->no.p[pos]; // ptr recebe posicao no arquivo do filho do caminho para encontrar a chave
     }
     printf("Key %d is not available\n",key);
+    free(bloco);
+    free(cabecalho);
 }/*End of search()*/
 
 // Encontra posicao onde o chave deveria estar
@@ -574,122 +596,234 @@ void eatline(void) {
   while ((c=getchar())!='\n') ;
 }
 
-// /* Function to display each key in the tree in sorted order (in-order traversal)
-//     @param struct node *ptr, the pointer to the node you are currently working with
-//     */
-// void inorder(struct node *ptr) {
-//     if (ptr) {
-//         if (ptr->n >= 1) {
-//             inorder(ptr->p[0]);
-//             printf("%d ", ptr->keys[0]);
-//             inorder(ptr->p[1]);
-//             if (ptr->n == 2) {
-//                 printf("%d ", ptr->keys[1]);
-//                 inorder(ptr->p[2]);
-//             }
-//         }
-//     }
-// }
+/* Function to display each key in the tree in sorted order (in-order traversal)
+    @param struct node *ptr, the pointer to the node you are currently working with
+    */
+void inorder(long int ptr) {
 
-// /* Function that returns the total number of keys in the tree.
-//     @param struct node *ptr, the pointer to the node you are currently working with
-//     */
-// int totalKeys(struct node *ptr) {
-//     if (ptr) {
-//         int count = 1;
-//         if (ptr->n >= 1) {
-//             count += totalKeys(ptr->p[0]);
-//             count += totalKeys(ptr->p[1]);
-//             if (ptr->n == 2) count += totalKeys(ptr->p[2]) + 1;
-//         }
-//         return count;
-//     }
-//     return 0;
-// }
+	// Cria FILE arquivo
+    FILE *arquivo;
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
 
-// /* Function that prints the total number of keys in the tree.
-// 	@param struct node *ptr, the pointer to the node you are currently working with
-// 	*/
-// void printTotal(struct node *ptr) {
-// 	printf("%d\n",totalKeys(ptr));
-// }
+    if (ptr != -1) {
 
-// /* Function that returns the smallest key found in the tree.
-//     @param struct node *ptr, the pointer to the node you are currently working with
-//     */
-// int getMin(struct node *ptr) {
-//     if (ptr) {
-//         int min;
-//         if (ptr->p[0] != NULL) min = getMin(ptr->p[0]);
-//         else min = ptr->keys[0];
-//         return min;
-//     }
-//     return 0;
-// }
+    	// Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
 
-// /* Function that returns the largest key found in the tree.
-//     @param struct node *ptr, the pointer to the node you are currently working with
-//     */
-// int getMax(struct node *ptr) {
-//     if (ptr) {
-//         int max;
-//         if (ptr->n == 1) {
-//             if (ptr->p[1] != NULL) max = getMax(ptr->p[1]);
-//             else max = ptr->keys[0];
-//         }
-//         if (ptr->n == 2) {
-//             if (ptr->p[2] != NULL) max = getMax(ptr->p[2]);
-//             else max = ptr->keys[1];
-//         }
-//         return max;
-//     }
-//     return 0;
-// }
+	    // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
 
-//  Function that prints the smallest and largest keys found in the tree.
-//     @param struct node *ptr, the pointer to the node you are currently working with
+	    else {
+
+	       // Le o bloco do nó apontado por ptr
+	        fseek(arquivo, ptr, SEEK_SET);
+	        fread(bloco, TAM_BLOCO,1,arquivo);
+	        fclose(arquivo);
+
+	        if (bloco->no.n >= 1) {
+	            inorder(bloco->no.p[0]);
+	            printf("%d ", bloco->no.keys[0]);
+	            inorder(bloco->no.p[1]);
+	            if (bloco->no.n == 2) {
+	                printf("%d ", bloco->no.keys[1]);
+	                inorder(bloco->no.p[2]);
+	            }
+	        }
+	    }
+    }
+}
+
+/* Function that returns the total number of keys in the tree.
+    @param struct node *ptr, the pointer to the node you are currently working with
+    */
+int totalKeys(long int ptr) {
+	// Cria FILE arquivo
+    FILE *arquivo;
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
+
+    if (ptr != -1) {
+        int count = 1;
+
+        // Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+
+	    // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
+
+	    else{
+
+	    	 // Le o bloco do nó apontado por ptr
+	        fseek(arquivo, ptr, SEEK_SET);
+	        fread(bloco, TAM_BLOCO,1,arquivo);
+	        fclose(arquivo);
+
+	        if (bloco->no.n >= 1) {
+	            count += totalKeys(bloco->no.p[0]);
+	            count += totalKeys(bloco->no.p[1]);
+	            if (bloco->no.n == 2) count += totalKeys(bloco->no.p[2]) + 1;
+	        }
+	        return count;
+	    }
+      
+    }
+    return 0;
+}
+
+/* Function that prints the total number of keys in the tree.
+	@param struct node *ptr, the pointer to the node you are currently working with
+	*/
+void printTotal(long int ptr) {
+
+	printf("%d\n",totalKeys(ptr));
+}
+
+/* Function that returns the smallest key found in the tree.
+    @param struct node *ptr, the pointer to the node you are currently working with
+    */
+int getMin(long int ptr) {
+
+	// Cria FILE arquivo
+    FILE *arquivo;
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
+    if (ptr != -1) {
+    	// Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+         // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
+
+       // Le o bloco do nó apontado por ptr
+        fseek(arquivo, ptr, SEEK_SET);
+        fread(bloco, TAM_BLOCO,1,arquivo);
+        fclose(arquivo);
+
+        int min;
+
+        if (bloco->no.p[0] != -1) min = getMin(bloco->no.p[0]);
+        else min = bloco->no.keys[0];
+        return min;
+    }
+    return 0;
+}
+
+/* Function that returns the largest key found in the tree.
+    @param struct node *ptr, the pointer to the node you are currently working with
+    */
+int getMax(long int ptr) {
+
+	// Cria FILE arquivo
+    FILE *arquivo;
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
+
+    if (ptr != -1) {
+
+    	// Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+         // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
+
+       // Le o bloco do nó apontado por ptr
+        fseek(arquivo, ptr, SEEK_SET);
+        fread(bloco, TAM_BLOCO,1,arquivo);
+        fclose(arquivo);
+
+        int max;
+        if (bloco->no.n == 1) {
+            if (bloco->no.p[1] != -1) max = getMax(bloco->no.p[1]);
+            else max = bloco->no.keys[0];
+        }
+        if (bloco->no.n == 2) {
+            if (bloco->no.p[2] != -1) max = getMax(bloco->no.p[2]);
+            else max = bloco->no.keys[1];
+        }
+        return max;
+    }
+    return 0;
+}
+
+ // Function that prints the smallest and largest keys found in the tree.
+ //    @param struct node *ptr, the pointer to the node you are currently working with
     
-// void getMinMax(struct node *ptr) {
-//     printf("%d %d\n", getMin(ptr), getMax(ptr));
-// }
+void getMinMax(long int ptr) {
+    printf("%d %d\n", getMin(ptr), getMax(ptr));
+}
 
-// /* Function that determines the largest number.
-// 	@param int, integer to compare.
-// 	@param int, integer to compare.
-// 	@param int, integer to compare.
-// 	*/
-// int max(int first, int second, int third) {
-// 	int max = first;
-// 	if (second > max) max = second;
-// 	if (third > max) max = third;
-// 	return max;
-// }
+/* Function that determines the largest number.
+	@param int, integer to compare.
+	@param int, integer to compare.
+	@param int, integer to compare.
+	*/
+int max(int first, int second, int third) {
+	int max = first;
+	if (second > max) max = second;
+	if (third > max) max = third;
+	return max;
+}
 
-// /*Function that finds the maximum level in the node and returns it as an integer.
-// 	@param struct node *ptr, the node to find the maximum level for.
-// 	*/
-// int maxLevel(struct node *ptr) {
-// 	if (ptr) {
-// 		int l = 0, mr = 0, r = 0, max_depth;
-// 		if (ptr->p[0] != NULL) l = maxLevel(ptr->p[0]);
-// 		if (ptr->p[1] != NULL) mr = maxLevel(ptr->p[1]);
-// 		if (ptr->n == 2) {
-// 			if (ptr->p[2] != NULL) r = maxLevel(ptr->p[2]);
-// 		}
-// 		max_depth = max(l, mr, r) + 1;
-// 		return max_depth;
-// 	}
-// 	return 0;
-// }
+/*Function that finds the maximum level in the node and returns it as an integer.
+	@param struct node *ptr, the node to find the maximum level for.
+	*/
+int maxLevel(long int ptr) {
 
-// /*Function that prints the maximum level in the tree.
-// 	@param struct node *ptr, the tree to find the maximum level for.
-// 	*/
-// void printMaxLevel(struct node *ptr) {
-// 	int max = maxLevel(ptr) - 1;
-// 	if (max == -1) printf("tree is empty\n");
-// 	else printf("%d\n", max);
-// }
+	// Cria FILE arquivo
+    FILE *arquivo;
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
+
+	if (ptr != -1) {
+
+		// Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+         // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
+
+       // Le o bloco do nó apontado por ptr
+        fseek(arquivo, ptr, SEEK_SET);
+        fread(bloco, TAM_BLOCO,1,arquivo);
+        fclose(arquivo);
+
+		int l = 0, mr = 0, r = 0, max_depth;
+		if (bloco->no.p[0] != -1) l = maxLevel(bloco->no.p[0]);
+		if (bloco->no.p[1] != -1) mr = maxLevel(bloco->no.p[1]);
+		if (bloco->no.n == 2) {
+			if (bloco->no.p[2] != -1) r = maxLevel(bloco->no.p[2]);
+		}
+		max_depth = max(l, mr, r) + 1;
+		return max_depth;
+	}
+	return 0;
+}
+
+/*Function that prints the maximum level in the tree.
+	@param struct node *ptr, the tree to find the maximum level for.
+	*/
+void printMaxLevel(long int ptr) {
+	int max = maxLevel(ptr) - 1;
+	if (max == -1) printf("tree is empty\n");
+	else printf("%d\n", max);
+}
 
 
 // Funçoes para manipulação de criaArquivo
