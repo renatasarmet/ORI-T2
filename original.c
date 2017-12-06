@@ -16,6 +16,14 @@ struct node {
     long int p[M]; // apontarão para a posiçao dos filhos do nó no arquivo 
 };
 
+
+// Possui 64 bytes
+struct node2 {
+    int n; /* n < M No. of keys in node will always less than order of B tree */ // Quantidade de chave no nó
+    int keys[M-1]; /*array of keys*/ //chaves
+    struct node2* p[M]; // apontarão para a posiçao dos filhos do nó no arquivo 
+}*root2 = NULL;
+
 //Estrutura para o bloco contendo apenas um nó (64 bytes)
 struct Bloco{
 	  struct node no;
@@ -31,11 +39,11 @@ enum KeyStatus { Duplicate,SearchFailure,Success,InsertIt,LessKeys, FailedOpenFi
 
 int insert(int key);
 void display(long int root,int);
-//void DelNode(int x);
+void DelNode(int x, long int root);
 void search(int x);
 enum KeyStatus ins(long int r, int x, int* y, struct node** u, long int *newNodePos);
 int searchPos(int x,int *key_arr, int n);
-// enum KeyStatus del(struct node *r, int x);
+enum KeyStatus del(struct node2 *r, int x);
 void eatline(void);
 void inorder(long int ptr);
 int totalKeys(long int ptr);
@@ -49,7 +57,9 @@ void printMaxLevel(long int ptr);
 void criarArquivo(FILE* arquivo);
 struct Bloco* criarBloco();
 struct Cabecalho* criarCabecalho();
-
+struct node2* transformaEmStruct(long int ptr);
+void transformaEmArquivo(struct node2 *ptr);
+void voltaArquivo(struct node2* ptr);
 
 int main()
 {
@@ -78,7 +88,7 @@ int main()
 
         printf("\n\n0.New File\n");
         printf("1.Insert\n");
-        // printf("2.Delete\n");
+        printf("2.Delete\n");
         printf("3.Search\n");
         printf("4.Display\n");
         printf("5.Quit\n");
@@ -99,11 +109,11 @@ int main()
             scanf("%d",&key); eatline();
             insert(key);
             break;
-        // case 2:
-        //     printf("Enter the key : ");
-        //     scanf("%d",&key); eatline();
-        //     DelNode(key);
-        //     break;
+        case 2:
+            printf("Enter the key : ");
+            scanf("%d",&key); eatline();
+            DelNode(key, cabecalho->root);
+            break;
         case 3:
             printf("Enter the key : ");
             scanf("%d",&key); eatline();
@@ -368,7 +378,7 @@ void display(long int ptr, int blanks)
         // Verifica se arquivo foi aperto com sucesso
 	    if(!arquivo){
 	        printf("\nFailed to open file\n");
-	        return 0;
+	        return;
 	    }
 
 	    else{
@@ -457,138 +467,153 @@ int searchPos(int key, int *key_arr, int n)
     return pos;
 }/*End of searchPos()*/
 
-// void DelNode(int key)
-// {
-//     struct node *uproot;
-//     enum KeyStatus value;
-//     value = del(root,key);
-//     switch (value)
-//     {
-//     case SearchFailure:
-//         printf("\nKey %d is not available\n",key);
-//         break;
-//     case LessKeys:
-//         uproot = root;
-//         root = root->p[0];
-//         free(uproot);
-//         break;
-//     }/*End of switch*/
-// }/*End of delnode()*/
+void DelNode(int key, long int root)
+{
+    struct node2 *uproot;
+    enum KeyStatus value;
+    int ok = 1;
+    root2 = transformaEmStruct(root);
 
-// enum KeyStatus del(struct node *ptr, int key)
-// {
-//     int pos, i, pivot, n ,min;
-//     int *key_arr;
-//     enum KeyStatus value;
-//     struct node **p,*lptr,*rptr;
+    value = del(root2,key);
+    switch (value)
+    {
+    case SearchFailure:
+        printf("\nKey %d is not available\n",key);
+        ok = 0;
+        break;
+    case LessKeys:
+        uproot = root2;
+        root2 = root2->p[0];
+        free(uproot);
+        break;
+    }/*End of switch*/
 
-//     if (ptr == NULL)
-//         return SearchFailure;
-//     /*Assigns values of node*/
-//     n=ptr->n;
-//     key_arr = ptr->keys;
-//     p = ptr->p;
-//     min = (M - 1)/2;/*Minimum number of keys*/
+    if(ok==1){
+	    // Reescreve arquivo
+	    voltaArquivo(root2);
+    }
 
-//     //Search for key to delete
-//     pos = searchPos(key, key_arr, n);
-//     // p is a leaf
-//     if (p[0] == NULL)
-//     {
-//         if (pos == n || key < key_arr[pos])
-//             return SearchFailure;
-//         /*Shift keys and pointers left*/
-//         for (i=pos+1; i < n; i++)
-//         {
-//             key_arr[i-1] = key_arr[i];
-//             p[i] = p[i+1];
-//         }
-//         return --ptr->n >= (ptr==root ? 1 : min) ? Success : LessKeys;
-//     }/*End of if */
+}/*End of delnode()*/
 
-//     //if found key but p is not a leaf
-//     if (pos < n && key == key_arr[pos])
-//     {
-//         struct node *qp = p[pos], *qp1;
-//         int nkey;
-//         while(1)
-//         {
-//             nkey = qp->n;
-//             qp1 = qp->p[nkey];
-//             if (qp1 == NULL)
-//                 break;
-//             qp = qp1;
-//         }/*End of while*/
-//         key_arr[pos] = qp->keys[nkey-1];
-//         qp->keys[nkey - 1] = key;
-//     }/*End of if */
-//     value = del(p[pos], key);
-//     if (value != LessKeys)
-//         return value;
+enum KeyStatus del(struct node2 *ptr, int key)
+{
+    int pos, i, pivot, n ,min;
+    int *key_arr;
+    enum KeyStatus value;
+    struct node2 **p,*lptr,*rptr;
 
-//     if (pos > 0 && p[pos-1]->n > min)
-//     {
-//         pivot = pos - 1; /*pivot for left and right node*/
-//         lptr = p[pivot];
-//         rptr = p[pos];
-//         /*Assigns values for right node*/
-//         rptr->p[rptr->n + 1] = rptr->p[rptr->n];
-//         for (i=rptr->n; i>0; i--)
-//         {
-//             rptr->keys[i] = rptr->keys[i-1];
-//             rptr->p[i] = rptr->p[i-1];
-//         }
-//         rptr->n++;
-//         rptr->keys[0] = key_arr[pivot];
-//         rptr->p[0] = lptr->p[lptr->n];
-//         key_arr[pivot] = lptr->keys[--lptr->n];
-//         return Success;
-//     }/*End of if */
-// //if (posn > min)
-//     if (pos < n && p[pos + 1]->n > min)
-//     {
-//         pivot = pos; /*pivot for left and right node*/
-//         lptr = p[pivot];
-//         rptr = p[pivot+1];
-//         /*Assigns values for left node*/
-//         lptr->keys[lptr->n] = key_arr[pivot];
-//         lptr->p[lptr->n + 1] = rptr->p[0];
-//         key_arr[pivot] = rptr->keys[0];
-//         lptr->n++;
-//         rptr->n--;
-//         for (i=0; i < rptr->n; i++)
-//         {
-//             rptr->keys[i] = rptr->keys[i+1];
-//             rptr->p[i] = rptr->p[i+1];
-//         }/*End of for*/
-//         rptr->p[rptr->n] = rptr->p[rptr->n + 1];
-//         return Success;
-//     }/*End of if */
+    if (ptr == NULL)
+        return SearchFailure;
+    /*Assigns values of node2*/
 
-//     if(pos == n)
-//         pivot = pos-1;
-//     else
-//         pivot = pos;
+    n=ptr->n;
+    key_arr = ptr->keys;
+    p = ptr->p;
+    min = (M - 1)/2;/*Minimum number of keys*/
 
-//     lptr = p[pivot];
-//     rptr = p[pivot+1];
-//     /*merge right node with left node*/
-//     lptr->keys[lptr->n] = key_arr[pivot];
-//     lptr->p[lptr->n + 1] = rptr->p[0];
-//     for (i=0; i < rptr->n; i++)
-//     {
-//         lptr->keys[lptr->n + 1 + i] = rptr->keys[i];
-//         lptr->p[lptr->n + 2 + i] = rptr->p[i+1];
-//     }
-//     lptr->n = lptr->n + rptr->n +1;
-//     free(rptr); /*Remove right node*/
-//     for (i=pos+1; i < n; i++)
-//     {
-//         key_arr[i-1] = key_arr[i];
-//         p[i] = p[i+1];
-//     }
-//     return --ptr->n >= (ptr == root ? 1 : min) ? Success : LessKeys;
-// }/*End of del()*/
+    //Search for key to delete
+    pos = searchPos(key, key_arr, n);
+
+    // p is a leaf
+    if (p[0] == NULL)
+    {
+        if (pos == n || key < key_arr[pos]){
+            return SearchFailure;
+        }
+        /*Shift keys and pointers left*/
+        for (i=pos+1; i < n; i++)
+        {
+            key_arr[i-1] = key_arr[i];
+            p[i] = p[i+1];
+        }
+
+        printf("\nREMOVEU\n");
+        return --ptr->n >= (ptr==root2 ? 1 : min) ? Success : LessKeys;
+    }/*End of if */
+
+    //if found key but p is not a leaf
+    if (pos < n && key == key_arr[pos])
+    {
+        struct node2 *qp = p[pos], *qp1;
+        int nkey;
+        while(1)
+        {
+            nkey = qp->n;
+            qp1 = qp->p[nkey];
+            if (qp1 == NULL)
+                break;
+            qp = qp1;
+        }/*End of while*/
+        key_arr[pos] = qp->keys[nkey-1];
+        qp->keys[nkey - 1] = key;
+    }/*End of if */
+    value = del(p[pos], key);
+    if (value != LessKeys)
+        return value;
+
+    if (pos > 0 && p[pos-1]->n > min)
+    {
+        pivot = pos - 1; /*pivot for left and right node2*/
+        lptr = p[pivot];
+        rptr = p[pos];
+        /*Assigns values for right node2*/
+        rptr->p[rptr->n + 1] = rptr->p[rptr->n];
+        for (i=rptr->n; i>0; i--)
+        {
+            rptr->keys[i] = rptr->keys[i-1];
+            rptr->p[i] = rptr->p[i-1];
+        }
+        rptr->n++;
+        rptr->keys[0] = key_arr[pivot];
+        rptr->p[0] = lptr->p[lptr->n];
+        key_arr[pivot] = lptr->keys[--lptr->n];
+        return Success;
+    }/*End of if */
+//if (posn > min)
+    if (pos < n && p[pos + 1]->n > min)
+    {
+        pivot = pos; /*pivot for left and right node2*/
+        lptr = p[pivot];
+        rptr = p[pivot+1];
+        /*Assigns values for left node2*/
+        lptr->keys[lptr->n] = key_arr[pivot];
+        lptr->p[lptr->n + 1] = rptr->p[0];
+        key_arr[pivot] = rptr->keys[0];
+        lptr->n++;
+        rptr->n--;
+        for (i=0; i < rptr->n; i++)
+        {
+            rptr->keys[i] = rptr->keys[i+1];
+            rptr->p[i] = rptr->p[i+1];
+        }/*End of for*/
+        rptr->p[rptr->n] = rptr->p[rptr->n + 1];
+        return Success;
+    }/*End of if */
+
+    if(pos == n)
+        pivot = pos-1;
+    else
+        pivot = pos;
+
+    lptr = p[pivot];
+    rptr = p[pivot+1];
+    /*merge right node2 with left node2*/
+    lptr->keys[lptr->n] = key_arr[pivot];
+    lptr->p[lptr->n + 1] = rptr->p[0];
+    for (i=0; i < rptr->n; i++)
+    {
+        lptr->keys[lptr->n + 1 + i] = rptr->keys[i];
+        lptr->p[lptr->n + 2 + i] = rptr->p[i+1];
+    }
+    lptr->n = lptr->n + rptr->n +1;
+    free(rptr); /*Remove right node2*/
+    for (i=pos+1; i < n; i++)
+    {
+        key_arr[i-1] = key_arr[i];
+        p[i] = p[i+1];
+    }
+    return --ptr->n >= (ptr == root2 ? 1 : min) ? Success : LessKeys;
+}/*End of del()*/
 
 void eatline(void) {
   char c;
@@ -614,7 +639,7 @@ void inorder(long int ptr) {
 	    // Verifica se arquivo foi aperto com sucesso
 	    if(!arquivo){
 	        printf("\nFailed to open file\n");
-	        return 0;
+	        return;
 	    }
 
 	    else {
@@ -848,11 +873,100 @@ void criarArquivo(FILE* arquivo) {
 	if (arquivo == NULL) {
 		printf("\nFailed to create file\n");
 	}
-  else{
-    struct Cabecalho *cabecalho = criarCabecalho();
-    cabecalho->root = -1;
-    fwrite(cabecalho, TAM_CABECALHO, 1, arquivo);
-    printf("\nFile successfully created\n");
-  }
+  	else{
+	    struct Cabecalho *cabecalho = criarCabecalho();
+	    cabecalho->root = -1;
+	    fwrite(cabecalho, TAM_CABECALHO, 1, arquivo);
+	    printf("\nFile successfully created\n");
+  	}
 	fclose(arquivo);
 }
+
+
+// Metodo que pega tudo do arquivo e transforma em struct
+struct node2* transformaEmStruct(long int ptr)
+{
+    // Cria FILE arquivo
+    FILE *arquivo;
+
+
+	struct node2* no = malloc(TAM_BLOCO);
+
+    // Cria Bloco bloco
+    struct Bloco* bloco = criarBloco();
+
+    if (ptr != -1)
+    {
+        int i;
+
+        // Abre o arquivo para leitura
+        arquivo = fopen("arquivo.txt", "rb");
+
+        // Verifica se arquivo foi aperto com sucesso
+	    if(!arquivo){
+	        printf("\nFailed to open file\n");
+	        return 0;
+	    }
+
+	    else{
+
+	        // Le o bloco do nó apontado por ptr
+	        fseek(arquivo, ptr, SEEK_SET);
+	        fread(bloco, TAM_BLOCO,1,arquivo);
+
+	   		no->n = bloco->no.n;
+
+	   		for (i=0; i < bloco->no.n; i++)
+	   			no->keys[i] = bloco->no.keys[i];
+
+	        for (i=0; i <= no->n; i++){
+	        	if(bloco->no.p[i]!= -1)
+	            	no->p[i] = transformaEmStruct(bloco->no.p[i]);
+	            else
+	            	no->p[i] = NULL;
+	        }
+
+	    }
+     
+    }/*End of if*/
+	return no;
+}/*End of transformaEmStruct()*/
+
+
+// Depois de remover, 
+void voltaArquivo(struct node2* ptr){
+
+	FILE *arquivo;
+
+	arquivo = fopen("arquivo.txt", "wb");
+	if (arquivo == NULL) {
+		printf("\nFailed to create file\n");
+	}
+  	else{
+	    struct Cabecalho *cabecalho = criarCabecalho();
+	    cabecalho->root = -1;
+	    fwrite(cabecalho, TAM_CABECALHO, 1, arquivo);
+  	}
+	fclose(arquivo);
+
+	if (ptr){
+		transformaEmArquivo(ptr);
+	}
+
+}
+
+void transformaEmArquivo(struct node2 *ptr) {
+	int i, j;
+    if (ptr) {
+        
+        for (j=0; j < ptr->n; j++)
+        		insert(ptr->keys[j]);
+
+        for (i=0; i <= ptr->n; i++)
+            transformaEmArquivo(ptr->p[i]);
+        
+    }/*End of if*/
+}/*End of display()*/
+
+
+
